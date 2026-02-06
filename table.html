@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blackjack</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    text-align: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#background {
+    position: fixed;
+    inset: 0;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    background-color: #808080; /* neutral grey */
+    z-index: -1;
+    transition: background-image 0.6s ease;
+}
+
+#rarity-display {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 14px;
+    background: rgba(0,0,0,0.75);
+    z-index: 10;
+}
+
+.common { color: #bdc3c7; }
+.uncommon { color: #2ecc71; }
+.rare { color: #3498db; }
+.epic { color: #9b59b6; }
+.legendary { color: #f1c40f; }
+.mythic { color: #e67e22; }
+.godly {
+    color: #ff004c;
+    text-shadow: 0 0 10px #ff004c;
+}
+
+.game-container {
+    position: relative;
+    z-index: 1;
+    background: rgba(0,0,0,0.7);
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 700px;
+    margin: 50px auto;
+}
+
+.hand-container {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+    min-height: 120px;
+}
+
+.card {
+    width: 80px;
+    margin: 0 5px;
+    transform: translateY(-50px);
+    opacity: 0;
+    transition: all 0.5s ease;
+}
+
+.card.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: #27ae60;
+    color: #fff;
+}
+
+button:hover { background-color: #2ecc71; }
+button:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+
+input {
+    padding: 5px;
+    width: 60px;
+    border-radius: 5px;
+    border: none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="background"></div>
+<div id="rarity-display">No Background</div>
+
+<div class="game-container">
+    <h1>Blackjack</h1>
+    <p id="coins">Coins: 100</p>
+
+    <button onclick="rollBackground()">🎲 Roll Background (100 Coins)</button>
+
+    <div id="bet-section">
+        <label>Bet: <input type="number" id="bet-input" min="1" value="10"></label>
+        <button onclick="startRound()">Start Round</button>
+    </div>
+
+    <div id="game-section" style="display:none;">
+        <h2>Dealer</h2>
+        <div class="hand-container" id="dealer-hand"></div>
+        <p id="dealer-total"></p>
+
+        <h2>You</h2>
+        <div class="hand-container" id="player-hand"></div>
+        <p id="player-total"></p>
+
+        <button onclick="playerHit()">Hit</button>
+        <button onclick="playerStand()">Stand</button>
+        <p id="message"></p>
+    </div>
+</div>
+
+<script>
+let playerCoins = 100000000;
+let playerHand = [];
+let dealerHand = [];
+let deck = [];
+let playerBet = 0;
+let roundOver = false;
+
+const backgrounds = {
+    1: { url: 'https://i.redd.it/cr7-kirkified-v0-e728mkmlpq0g1.jpg?width=640&format=pjpg&auto=webp&s=4b4486d9da744208c14abdef47dea439c2e46fff', rarity: 'Common' },
+    2: { url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSExnnsoF_sNOtP56S77GJvVxjYRhOwN3JTVg&s', rarity: 'Common' },
+    3: { url: 'https://i.kym-cdn.com/photos/images/original/003/158/446/0bd.jpeg', rarity: 'Uncommon' },
+    4: { url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDHY1pse_LXilIkIpNabji5tw-MBCwGjd8uQ&s', rarity: 'Uncommon' },
+    5: { url: 'https://pbs.twimg.com/media/G5fVrrybcAkn_Fk.jpg', rarity: 'Rare' },
+    6: { url: 'https://image.aiai.com/20251218/e844b712b7c40cca35e9e9cf0c923a1e.png', rarity: 'Rare' },
+    7: { url: 'https://i.pinimg.com/236x/d2/d4/b1/d2d4b1a963afd6259c0c6c3ab967a8f4.jpg', rarity: 'Epic' },
+    8: { url: 'https://i.kym-cdn.com/photos/images/original/003/158/432/111.jpeg', rarity: 'Legendary' },
+    9: { url: 'https://pbs.twimg.com/media/G63jcdcXAAARiXN.jpg', rarity: 'Mythic' },
+    10:{ url: 'https://pbs.twimg.com/media/G5ArpGcWEAAOBTA.jpg', rarity: 'Godly' }
+};
+
+function rollBackground() {
+    if (playerCoins < 100) {
+        alert('You need 100 coins!');
+        return;
+    }
+
+    playerCoins -= 100;
+    document.getElementById('coins').innerText = `Coins: ${playerCoins}`;
+
+    const roll = Math.floor(Math.random() * 10) + 1;
+    const bg = backgrounds[roll];
+
+    document.getElementById('background').style.backgroundImage = `url(${bg.url})`;
+    updateRarity(bg.rarity);
+}
+
+function updateRarity(rarity) {
+    const el = document.getElementById('rarity-display');
+    el.className = '';
+    el.textContent = rarity;
+
+    const map = {
+        Common: 'common',
+        Uncommon: 'uncommon',
+        Rare: 'rare',
+        Epic: 'epic',
+        Legendary: 'legendary',
+        Mythic: 'mythic',
+        Godly: 'godly'
+    };
+
+    el.classList.add(map[rarity]);
+}
+
+/* Blackjack logic */
+function createDeck(){
+    const suits=['C','D','H','S'];
+    const values=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+    deck=[];
+    for(let s of suits)for(let v of values)deck.push(v+s);
+    deck.sort(()=>Math.random()-0.5);
+}
+
+function drawCard(h){ h.push(deck.pop()); }
+
+function handTotal(h){
+    let t=0,a=0;
+    for(let c of h){
+        let v=c.slice(0,-1);
+        if(['J','Q','K'].includes(v))t+=10;
+        else if(v==='A'){t+=11;a++;}
+        else t+=parseInt(v);
+    }
+    while(t>21 && a>0){ t-=10; a--; }
+    return t;
+}
+
+function cardImage(c){
+    const s={C:'clubs',D:'diamonds',H:'hearts',S:'spades'};
+    let v=c.slice(0,-1);
+    if(v==='J')v='jack';
+    else if(v==='Q')v='queen';
+    else if(v==='K')v='king';
+    else if(v==='A')v='ace';
+    return `https://cdn.jsdelivr.net/gh/hayeah/playing-cards-assets/png/${v}_of_${s[c.slice(-1)]}.png`;
+}
+
+function showHands(reveal=false){
+    const dealerDiv = document.getElementById('dealer-hand');
+    const playerDiv = document.getElementById('player-hand');
+
+    dealerDiv.innerHTML='';
+    dealerHand.forEach((c,i)=>{
+        let img=document.createElement('img');
+        img.className='card';
+        img.src=(i===0||reveal)?cardImage(c):'https://cdn.jsdelivr.net/gh/hayeah/playing-cards-assets/png/back.png';
+        dealerDiv.appendChild(img);
+        setTimeout(()=>img.classList.add('show'),50*i);
+    });
+
+    document.getElementById('dealer-total').innerText =
+        reveal ? `Total: ${handTotal(dealerHand)}` : '';
+
+    playerDiv.innerHTML='';
+    playerHand.forEach((c,i)=>{
+        let img=document.createElement('img');
+        img.className='card';
+        img.src=cardImage(c);
+        playerDiv.appendChild(img);
+        setTimeout(()=>img.classList.add('show'),50*i);
+    });
+
+    document.getElementById('player-total').innerText =
+        `Total: ${handTotal(playerHand)}`;
+}
+
+function startRound(){
+    playerBet = parseInt(document.getElementById('bet-input').value);
+    if(playerBet<1 || playerBet>playerCoins){ alert('Invalid bet'); return; }
+
+    createDeck();
+    playerHand=[];
+    dealerHand=[];
+    drawCard(playerHand); drawCard(playerHand);
+    drawCard(dealerHand); drawCard(dealerHand);
+
+    document.getElementById('bet-section').style.display='none';
+    document.getElementById('game-section').style.display='block';
+    document.getElementById('message').innerText='';
+
+    showHands();
+}
+
+function playerHit(){
+    drawCard(playerHand);
+    showHands();
+    if(handTotal(playerHand)>21) playerStand();
+}
+
+function playerStand(){
+    while(handTotal(dealerHand)<17) drawCard(dealerHand);
+    showHands(true);
+
+    let p=handTotal(playerHand), d=handTotal(dealerHand);
+    let msg='';
+    if(p>21){msg='You busted!'; playerCoins-=playerBet;}
+    else if(d>21||p>d){msg='You win!'; playerCoins+=playerBet;}
+    else if(p===d){msg='Push!';}
+    else{msg='You lose!'; playerCoins-=playerBet;}
+
+    document.getElementById('message').innerText=msg;
+    document.getElementById('coins').innerText=`Coins: ${playerCoins}`;
+    document.getElementById('bet-section').style.display='block';
+}
+</script>
+</body>
+</html>

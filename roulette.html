@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Roulette Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b5135;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: #123;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    select, input, button {
+      padding: 10px;
+      margin: 8px 0;
+      width: 100%;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      background: #e63946;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #ff4d5a;
+    }
+    .result {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+    .game-over {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      color: white;
+      font-size: 24px;
+    }
+    .game-over img {
+      max-width: 80%;
+      max-height: 60%;
+      margin-bottom: 20px;
+    }
+    .game-over button {
+      width: auto;
+      padding: 10px 20px;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎰 Roulette</h1>
+    <canvas id="wheel" width="300" height="300"></canvas>
+
+    <p>Coins: <strong id="coins">100</strong></p>
+
+    <input type="number" id="betAmount" placeholder="Bet amount" min="1" />
+
+    <select id="betType">
+      <option value="red">Red</option>
+      <option value="black">Black</option>
+      <option value="green">Green (0)</option>
+      <option value="low">1–12</option>
+      <option value="mid">13–24</option>
+      <option value="high">25–36</option>
+      <option value="even">Even</option>
+      <option value="odd">Odd</option>
+    </select>
+
+    <button onclick="spin()">Spin</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    let coins = 100;
+
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const numbers = [...Array(37).keys()];
+    let angle = 0;
+
+    function drawArrow() {
+      ctx.fillStyle = "yellow";
+      ctx.beginPath();
+      ctx.moveTo(150, 5);
+      ctx.lineTo(140, 25);
+      ctx.lineTo(160, 25);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawWheel() {
+      const slice = (2 * Math.PI) / numbers.length;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < numbers.length; i++) {
+        const start = angle + i * slice;
+        const end = start + slice;
+
+        ctx.beginPath();
+        ctx.moveTo(150, 150);
+        ctx.arc(150, 150, 140, start, end);
+        ctx.fillStyle = i === 0 ? "green" : i % 2 === 0 ? "black" : "red";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(150, 150);
+        ctx.rotate(start + slice / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.fillText(i.toString(), 130, 5);
+        ctx.restore();
+      }
+
+      drawArrow();
+    }
+
+    drawWheel();
+
+    function spinWheel(callback) {
+      let steps = Math.floor(Math.random() * 51) + 50;
+      let speed = 0.15;
+
+      const interval = setInterval(() => {
+        angle += speed;
+        speed *= 0.985;
+        drawWheel();
+        steps--;
+
+        if (steps <= 0 || speed < 0.002) {
+          clearInterval(interval);
+          const slice = (2 * Math.PI) / numbers.length;
+          let normalized = (-(angle) + Math.PI * 1.5) % (2 * Math.PI);
+          if (normalized < 0) normalized += 2 * Math.PI;
+          const index = Math.floor(normalized / slice);
+          callback(index);
+        }
+      }, 30);
+    }
+
+    function showGameOver() {
+      const overlay = document.createElement('div');
+      overlay.className = 'game-over';
+      overlay.innerHTML = `
+        <h1>Get a job, you are broke</h1>
+        <img src='https://images.docformats.net/wp-content/uploads/2025/04/Job-Application-Form-Template-Google-Docs-Word-Page-01.png' alt='Game Over'>
+        <button onclick='location.reload()'>Restart</button>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    function spin() {
+      const bet = parseInt(document.getElementById("betAmount").value);
+      const betType = document.getElementById("betType").value;
+      const resultDiv = document.getElementById("result");
+
+      if (!bet || bet <= 0) {
+        resultDiv.textContent = "Enter a valid bet amount.";
+        return;
+      }
+      if (bet > coins) {
+        resultDiv.textContent = "Not enough coins.";
+        return;
+      }
+
+      spinWheel((number) => {
+        let color = "green";
+        if (number !== 0) color = number % 2 === 0 ? "black" : "red";
+
+        let win = false;
+        let payout = 1;
+
+        switch (betType) {
+          case "red": case "black": win = color === betType; payout = 2; break;
+          case "green": win = number === 0; payout = 14; break;
+          case "low": win = number >= 1 && number <= 12; payout = 3; break;
+          case "mid": win = number >= 13 && number <= 24; payout = 3; break;
+          case "high": win = number >= 25 && number <= 36; payout = 3; break;
+          case "even": win = number !== 0 && number % 2 === 0; payout = 2; break;
+          case "odd": win = number % 2 === 1; payout = 2; break;
+        }
+
+        if (win) {
+          coins += bet * (payout - 1);
+          resultDiv.textContent = `🎉 Number: ${number} (${color}) — You win +${bet * (payout - 1)} coins`;
+        } else {
+          coins -= bet;
+          resultDiv.textContent = `❌ Number: ${number} (${color}) — You lose ${bet} coins`;
+        }
+
+        document.getElementById("coins").textContent = coins;
+
+        if (coins <= 0) {
+          showGameOver();
+        }
+      });
+    }
+  </script>
+</body>
+</html>

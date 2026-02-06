@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mines Mania 💥⚡🌈</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: black;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    overflow: hidden;
+    position: relative;
+
+    /* EXTRA SHAKE */
+    animation: screenShake 0.35s infinite alternate;
+}
+
+/* FLASHING OVERLAY */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        rgba(255,0,255,0.18),
+        rgba(0,255,255,0.18),
+        rgba(255,255,0,0.18)
+    );
+    animation: flashOverlay 0.35s infinite alternate;
+    z-index: -4;
+    pointer-events: none;
+}
+
+/* VIDEO SPLIT CONTAINER */
+#video-container {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    z-index: -5;
+}
+
+/* LEFT & RIGHT VIDEOS */
+#subway-video,
+#minecraft-video {
+    width: 50%;
+    height: 100%;
+    object-fit: fill;
+
+    /* VIDEO FLICKER + JITTER */
+    animation: videoFlicker 0.25s infinite alternate;
+}
+
+/* GRID & UI */
+h1 {
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 12px #000;
+    font-size: 2.5em;
+    animation: hueShift 3s infinite linear;
+}
+
+.balance {
+    font-size: 1.4em;
+    margin-bottom: 20px;
+    padding: 8px 15px;
+    background-color: #2e2e45;
+    border-radius: 10px;
+    box-shadow: 2px 2px 12px rgba(0,0,0,0.7);
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.95em;
+    color: #ccc;
+}
+
+input, select, button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    font-size: 1em;
+}
+
+input, select {
+    width: 80px;
+    margin-top: 5px;
+    background-color: #3a3a55;
+    color: #fff;
+}
+
+button {
+    cursor: pointer;
+    background-color: #ff5c5c;
+    color: #fff;
+    font-weight: bold;
+    transition: all 0.2s;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+}
+button:hover:not(:disabled) {
+    background-color: #ff2c2c;
+    transform: scale(1.1) rotate(-3deg);
+}
+button:disabled {
+    background-color: #777;
+    cursor: not-allowed;
+}
+
+/* GRID */
+#grid {
+    display: grid;
+    gap: 6px;
+    margin-top: 20px;
+}
+
+.tile {
+    width: 60px;
+    height: 60px;
+    background-color: #3a3a55;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.1s;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+
+    /* TILE CHAOS */
+    animation: tilePulse 0.6s infinite alternate;
+}
+
+.tile.revealed {
+    cursor: default;
+    transform: scale(0.95);
+}
+
+.tile.mine {
+    animation: mineHit 0.2s;
+}
+
+.tile.revealAnim {
+    animation: bounce 0.3s, pulse 0.5s infinite alternate;
+    box-shadow: 0 0 24px #ffd700;
+}
+
+/* MESSAGES */
+#message {
+    margin-top: 15px;
+    font-size: 1.2em;
+    min-height: 1.2em;
+    text-align: center;
+    animation: hueShift 5s linear infinite;
+}
+
+/* POPUPS */
+.popup {
+    position: absolute;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1.5em;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+
+    animation:
+        popupAnim 0.8s forwards,
+        flashRotate 0.15s infinite alternate,
+        popupShake 0.1s infinite;
+}
+
+/* HITMARKER */
+.hitmarker {
+    position: absolute;
+    font-size: 42px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 2000;
+    animation: hitAnim 0.35s forwards, flashRotate 0.6s infinite alternate;
+}
+
+/* CANVAS */
+canvas {
+    position:absolute;
+    top:0;
+    left:0;
+    pointer-events:none;
+    z-index:500;
+}
+
+/* NYAN CAT */
+#nyanCatVideo {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    z-index:10000;
+    display:none;
+}
+
+/* ===== EXTRA ANIMATIONS ===== */
+
+@keyframes screenShake {
+    0%   { transform: translate(0,0) rotate(0deg); }
+    20%  { transform: translate(-4px,3px) rotate(-0.6deg); }
+    40%  { transform: translate(4px,-3px) rotate(0.6deg); }
+    60%  { transform: translate(-3px,-4px) rotate(-0.4deg); }
+    80%  { transform: translate(3px,4px) rotate(0.4deg); }
+    100% { transform: translate(0,0) rotate(0deg); }
+}
+
+@keyframes flashOverlay {
+    0%   { filter: hue-rotate(0deg) brightness(1); }
+    50%  { filter: hue-rotate(180deg) brightness(1.5); }
+    100% { filter: hue-rotate(360deg) brightness(1.2); }
+}
+
+@keyframes videoFlicker {
+    0% {
+        filter: brightness(1) contrast(1) saturate(1);
+        transform: scale(1);
+    }
+    100% {
+        filter: brightness(1.5) contrast(1.5) saturate(2);
+        transform: scale(1.03);
+    }
+}
+
+@keyframes tilePulse {
+    0% {
+        box-shadow: 0 0 12px #ff00ff;
+    }
+    100% {
+        box-shadow: 0 0 35px #00ffff, 0 0 55px #ff0;
+    }
+}
+
+@keyframes popupShake {
+    0% { transform: translate(0,0) rotate(-6deg); }
+    50% { transform: translate(7px,-7px) rotate(6deg); }
+    100% { transform: translate(-7px,7px) rotate(-6deg); }
+}
+
+/* ORIGINAL ANIMATIONS */
+@keyframes bounce {0%{transform:scale(0.7)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes mineHit {0%{transform:scale(1)}50%{transform:scale(1.5)}100%{transform:scale(1)}}
+@keyframes popupAnim {0%{opacity:1}50%{opacity:1;transform:translateY(-40px) scale(1.5)}100%{opacity:0;transform:translateY(-80px)}}
+@keyframes hitAnim {0%{opacity:1;transform:scale(0.6)}100%{opacity:0;transform:scale(1.5)}}
+@keyframes pulse {0%{transform:scale(1)}100%{transform:scale(1.2)}}
+@keyframes flashRotate {0%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}100%{transform:rotate(-5deg)}}
+@keyframes hueShift {0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+
+/* ===== MLG MODE ===== */
+body.mlg {
+    animation:
+        screenShake 0.05s infinite,
+        hueShift 0.4s infinite,
+        mlgZoom 0.15s infinite alternate;
+}
+
+/* SCREEN OVERLOAD */
+body.mlg::after {
+    content: "💥💯🔥 MLG 🔥💯💥";
+    position: fixed;
+    inset: 0;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            rgba(255,0,255,0.35),
+            rgba(255,255,0,0.35) 20px,
+            rgba(0,255,255,0.35) 40px
+        );
+    font-size: 6vw;
+    font-weight: 900;
+    text-align: center;
+    line-height: 100vh;
+    animation:
+        mlgFlash 0.08s infinite,
+        spin 0.6s infinite linear;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* VIDEOS GO INSANE */
+body.mlg #subway-video,
+body.mlg #minecraft-video {
+    animation:
+        videoFlicker 0.05s infinite,
+        spin 1s infinite linear;
+    filter: contrast(3) saturate(4) brightness(2);
+}
+
+/* GRID GOES BRRR */
+body.mlg .tile {
+    animation:
+        tilePulse 0.1s infinite alternate,
+        spin 0.8s infinite linear;
+}
+
+/* POPUPS GO FERAL */
+body.mlg .popup {
+    animation:
+        popupShake 0.05s infinite,
+        flashRotate 0.1s infinite,
+        hueShift 0.2s infinite;
+    font-size: 2em;
+}
+
+/* ===== EXTRA MLG ANIMATIONS ===== */
+@keyframes mlgZoom {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.08); }
+}
+
+@keyframes mlgFlash {
+    0% { filter: brightness(1) contrast(1); }
+    100% { filter: brightness(2) contrast(3); }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- BACKGROUND VIDEO SPLIT -->
+<div id="video-container">
+    <video id="subway-video" autoplay muted loop playsinline></video>
+    <video id="minecraft-video" autoplay muted loop playsinline></video>
+</div>
+
+<h1>Mines Mania 💥⚡🌈</h1>
+<div class="balance">Coins: <span id="coins">10.00</span></div>
+
+<div class="controls">
+    <label>Grid size
+        <select id="gridSize">
+            <option value="4">4x4</option>
+            <option value="5">5x5</option>
+            <option value="6">6x6</option>
+            <option value="7">7x7</option>
+        </select>
+    </label>
+
+    <label>Bet amount
+        <input type="number" id="betAmount" min="0.01" step="0.01" value="1.00">
+    </label>
+
+    <label>Mines
+        <input type="number" id="mineCount" min="1" value="3">
+    </label>
+
+    <button id="startGame">Start Game</button>
+    <button id="cashOut" disabled>Cash Out</button>
+</div>
+
+<div id="grid"></div>
+<div id="message"></div>
+
+<canvas id="confetti"></canvas>
+
+<video id="nyanCatVideo" autoplay muted>
+    <source src="https://media.giphy.com/media/sIIhZliB2McAo/giphy.mp4" type="video/mp4">
+</video>
+
+<script>
+    /* BACKGROUND VIDEOS */
+const subwayVideo = document.getElementById("subway-video");
+const minecraftVideo = document.getElementById("minecraft-video");
+
+subwayVideo.src = "subway_surfers_gameplay.mp4";
+minecraftVideo.src = "minecraft_parkour.mp4";
+
+subwayVideo.playbackRate = 1.15;
+minecraftVideo.playbackRate = 1.1;
+
+/* ---------------- AUDIO ---------------- */
+const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+function playSound(freq,dur){
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.stop(audioCtx.currentTime + dur);
+}
+
+/* ---------------- HITMARKER ---------------- */
+function hitmarker(x,y,red){
+    const h = document.createElement("div");
+    h.className = "hitmarker";
+    h.style.left = x + "px";
+    h.style.top = y + "px";
+    h.style.color = red ? "red" : "white";
+    h.textContent = "✕";
+    document.body.appendChild(h);
+    playSound(red ? 100 : 800, 0.1);
+    setTimeout(()=>h.remove(),400);
+}
+
+/* ---------------- GLOBALS ---------------- */
+let coins = 10.00;
+let gridSize, mineCount, betAmount;
+let grid = [];
+let mines = [];
+let revealed = 0;
+let currentMultiplier = 1;
+let gameActive = false;
+let scalingFactor = 1;
+
+const coinsDisplay = document.getElementById('coins');
+const gridContainer = document.getElementById('grid');
+const messageDiv = document.getElementById('message');
+const cashOutButton = document.getElementById('cashOut');
+const canvas = document.getElementById('confetti');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const nyanVideo = document.getElementById('nyanCatVideo');
+
+const fakeAds = [
+    "🍕 Eat at Joey's Place!",
+    "🛒 Buy 1 Get 1 Free Socks!",
+    "🎮 Level Up NOW!",
+    "🍔 Burger Blast Specials!",
+    "💎 Claim Your Mystery Gift!",
+
+    "🚗 New Rides, New You!",
+    "📱 Upgrade Your Phone Today!",
+    "🎧 Crystal-Clear Sound Deals!",
+    "🔥 Limited-Time Mega Sale!",
+    "🕹️ Retro Games Back in Stock!",
+
+    "🥤 Refresh with Ice-Cold Drinks!",
+    "👟 Run Faster with New Kicks!",
+    "📦 Surprise Box Incoming!",
+    "🌟 Become a VIP Member!",
+    "⚡ Power Up Instantly!",
+
+    "🍿 Movie Night Deals!",
+    "🧠 Boost Your Brain Power!",
+    "🏆 Chase the Win Today!",
+    "🎲 Roll for Big Rewards!",
+    "🛠️ Upgrade Your Gear!",
+
+    "🍩 Donuts So Good They Vanish!",
+    "🧃 Sip Something Legendary!",
+    "🎯 Hit Your Next Goal!",
+    "🚀 Launch Your Next Adventure!",
+    "🎁 Daily Rewards Await!",
+
+    "🧼 Clean Smarter, Not Harder!",
+    "📺 Stream More, Pay Less!",
+    "📚 Learn Something New Today!",
+    "🧩 Puzzle Your Way to Fun!",
+    "💼 Work Smarter Today!",
+
+    "🐾 Treat Your Pet Like Royalty!",
+    "🍫 Sweet Deals Inside!",
+    "🛍️ Shop Like a Champion!",
+    "🌍 Explore New Worlds!",
+    "🎵 Turn Up the Volume!",
+
+    "🕶️ Look Cool Instantly!",
+    "🏃 Get Moving Now!",
+    "🔋 Never Run Out of Power!",
+    "🛏️ Sleep Like a King!",
+    "🧊 Chill Out in Style!",
+
+    "📈 Invest in Fun Today!",
+    "🎨 Create Something Amazing!",
+    "🧙 Unlock Hidden Powers!",
+    "🪙 Stack Coins Faster!",
+    "👑 Become Legendary!"
+];
+/* ---------------- START GAME ---------------- */
+document.getElementById('startGame').addEventListener('click', () => {
+    gridSize = parseInt(document.getElementById('gridSize').value);
+    mineCount = parseInt(document.getElementById('mineCount').value);
+    betAmount = parseFloat(document.getElementById('betAmount').value);
+    if (mineCount < 1 || mineCount >= gridSize*gridSize) { alert("Invalid mine count"); return; }
+    if (betAmount > coins) { alert("Not enough coins"); return; }
+
+    coins -= betAmount;
+    coins = parseFloat(coins.toFixed(2));
+    coinsDisplay.textContent = coins.toFixed(2);
+
+    revealed = 0;
+    currentMultiplier = 1;
+    gameActive = true;
+
+    grid = Array(gridSize*gridSize).fill(null);
+    mines = [];
+    while(mines.length < mineCount){
+        let idx = Math.floor(Math.random()*grid.length);
+        if(!mines.includes(idx)) mines.push(idx);
+    }
+
+    const totalTiles = gridSize*gridSize;
+    const safeTiles = totalTiles - mineCount;
+    scalingFactor = 0.97 / (safeTiles/totalTiles);
+
+    renderGrid();
+    messageDiv.textContent = "Click a tile!";
+    cashOutButton.disabled = false;
+});
+
+/* ---------------- RENDER GRID ---------------- */
+function renderGrid() {
+    gridContainer.innerHTML = '';
+    gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
+    grid.forEach((val, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.addEventListener('click', (e) => handleClick(idx, tile, e));
+        gridContainer.appendChild(tile);
+    });
+}
+
+/* ---------------- MULTIPLIER ---------------- */
+function calculateMultiplier() {
+    const totalTiles = gridSize*gridSize;
+    const safeTiles = totalTiles - mineCount;
+    const basePower = 2.5 + (gridSize-4)*0.25;
+    const rawMultiplier = Math.pow(1 + revealed/safeTiles, basePower);
+    const riskFactor = 1 + (mineCount/totalTiles)*1.8;
+    return rawMultiplier * riskFactor * scalingFactor;
+}
+
+/* ---------------- SPAWN POPUPS & ADS ---------------- */
+function spawnPopup(text,target,red=false,center=false){
+    // Main popups
+    const count = Math.floor(Math.random()*7)+3;
+    for(let i=0;i<count;i++){
+        const p = document.createElement('div');
+        p.className='popup';
+        p.style.color = red ? "#ff2c2c" : `hsl(${Math.random()*360},100%,60%)`;
+        const r = target.getBoundingClientRect();
+        p.style.left = (center ? window.innerWidth/2 : r.left + r.width/2) + Math.random()*50-25+"px";
+        p.style.top = (center ? window.innerHeight/2 : r.top + r.height/2) + Math.random()*50-25+"px";
+        p.textContent = text;
+        document.body.appendChild(p);
+        setTimeout(()=>p.remove(),1200);
+    }
+
+    // Fake ad popups (always 1-3 per click)
+    const adCount = Math.floor(Math.random()*50)+1;
+    for(let i=0;i<adCount;i++){
+        const ad = document.createElement('div');
+        ad.className='popup';
+        ad.style.color = `hsl(${Math.random()*360},100%,60%)`;
+        ad.style.left = Math.random()*window.innerWidth + "px";
+        ad.style.top = Math.random()*window.innerHeight + "px";
+        ad.textContent = fakeAds[Math.floor(Math.random()*fakeAds.length)];
+        document.body.appendChild(ad);
+        setTimeout(()=>ad.remove(),1200);
+    }
+}
+
+/* ---------------- TILE CLICK ---------------- */
+function handleClick(idx, tile, e){
+    if(!gameActive || tile.classList.contains('revealed')) return;
+
+    tile.classList.add('revealed','revealAnim');
+    flashTile(tile);
+    hitmarker(e.clientX, e.clientY, mines.includes(idx));
+
+    if(mines.includes(idx)){
+        tile.textContent="💣";
+        tile.classList.add('mine');
+
+        /* 🔥🔥🔥 MLG MODE ACTIVATION 🔥🔥🔥 */
+        document.body.classList.add("mlg");
+        subwayVideo.playbackRate = 2;
+        minecraftVideo.playbackRate = 2;
+
+        setTimeout(() => {
+            document.body.classList.remove("mlg");
+            subwayVideo.playbackRate = 1.15;
+            minecraftVideo.playbackRate = 1.1;
+        }, 2500);
+
+        spawnPopup("💥 BOOM!",tile,true);
+        shakeScreen();
+        confettiEffect(true);
+        flashBackground();
+        endGame(false);
+    } else {
+        revealed++;
+        currentMultiplier = calculateMultiplier();
+        tile.textContent = currentMultiplier.toFixed(2)+"x";
+        spawnPopup("+"+currentMultiplier.toFixed(2)+"x",tile,false);
+        if(revealed + mineCount === gridSize*gridSize){
+            endGame(true);
+        }
+    }
+}
+
+/* ---------------- CASH OUT ---------------- */
+cashOutButton.addEventListener('click', ()=>{
+    if(!gameActive) return;
+    const payout = parseFloat((betAmount*currentMultiplier).toFixed(2));
+    coins += payout;
+    coins = parseFloat(coins.toFixed(2));
+    coinsDisplay.textContent = coins.toFixed(2);
+
+    spawnPopup("💰+"+payout.toFixed(2),gridContainer,false,true);
+    confettiEffect();
+    showNyanCat();
+    messageDiv.textContent=`You cashed out! You won ${payout.toFixed(2)} coins.`;
+
+    revealAll();
+    gameActive=false;
+    cashOutButton.disabled=true;
+});
+
+/* ---------------- END GAME ---------------- */
+function endGame(won){
+    if(!won){
+        messageDiv.textContent="💥 You hit a mine! You lost your bet.";
+    } else {
+        const payout = parseFloat((betAmount*currentMultiplier).toFixed(2));
+        coins += payout;
+        coins = parseFloat(coins.toFixed(2));
+        coinsDisplay.textContent = coins.toFixed(2);
+        spawnPopup("🎊+"+payout.toFixed(2),gridContainer,false,true);
+        confettiEffect();
+        showNyanCat();
+        messageDiv.textContent=`🎉 You cleared the grid! You won ${payout.toFixed(2)} coins.`;
+    }
+    revealAll();
+    gameActive=false;
+    cashOutButton.disabled=true;
+}
+
+/* ---------------- UTILITIES ---------------- */
+function revealAll(){
+    document.querySelectorAll('.tile').forEach((tile,idx)=>{
+        if(mines.includes(idx)) tile.textContent="💣";
+        tile.classList.add('revealed');
+    });
+}
+
+function shakeScreen(){
+    document.body.style.transition='transform 0.05s';
+    let i=0;
+    const interval = setInterval(()=>{
+        document.body.style.transform = `translate(${(Math.random()-0.5)*15}px, ${(Math.random()-0.5)*15}px)`;
+        i++;
+        if(i>8){ clearInterval(interval); document.body.style.transform=''; }
+    },50);
+}
+
+function flashTile(tile){
+    let colors=["#ff0","#f0f","#0ff","#fff","#ff00ff","#ff8800"];
+    let i=0;
+    const interval = setInterval(()=>{
+        tile.style.backgroundColor=colors[i%colors.length];
+        i++;
+        if(i>5){ clearInterval(interval); tile.style.backgroundColor="#6a6a80"; }
+    },50);
+}
+
+function flashBackground(){
+    let colors=["#ff0","#f0f","#0ff","#fff","#ff00ff","#ff8800"];
+    let i=0;
+    const interval = setInterval(()=>{
+        document.body.style.backgroundColor = colors[i%colors.length];
+        i++;
+        if(i>7){ clearInterval(interval); document.body.style.backgroundColor="black"; }
+    },50);
+}
+
+function confettiEffect(red=false){
+    const particles=[];
+    for(let i=0;i<250;i++){
+        particles.push({
+            x:Math.random()*canvas.width,
+            y:Math.random()*canvas.height,
+            vx:(Math.random()-0.5)*8,
+            vy:(Math.random()-3)*-8,
+            color:red?"#ff2c2c":["#ff0","#0ff","#f0f","#fff","#ff00ff","#ff8800"][Math.floor(Math.random()*6)]
+        });
+    }
+    const interval = setInterval(()=>{
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        particles.forEach(p=>{
+            p.x+=p.vx; p.y+=p.vy; p.vy+=0.1;
+            ctx.fillStyle=p.color;
+            ctx.fillRect(p.x,p.y,5,5);
+        });
+    },16);
+    setTimeout(()=>{clearInterval(interval);ctx.clearRect(0,0,canvas.width,canvas.height);},1500);
+}
+
+function showNyanCat(){
+    nyanVideo.style.display="block";
+    nyanVideo.currentTime=0;
+    setTimeout(()=>{nyanVideo.style.display="none";},3000);
+}
+</script>
+</body>
+</html>

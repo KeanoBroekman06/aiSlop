@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Crash Game</title>
+    <style>
+        body {
+            background: #0f1220;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background 0.6s ease;
+        }
+
+        .game {
+            background: #161a2f;
+            padding: 20px;
+            border-radius: 14px;
+            width: 380px;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .history {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .history span {
+            font-size: 13px;
+            padding: 5px 8px;
+            border-radius: 8px;
+            background: #22264a;
+            font-weight: bold;
+            min-width: 48px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 5px 0 10px;
+        }
+
+        .balance {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        /* 🚀 added */
+        #crashChart {
+            width: 100%;
+            height: 120px;
+            background: #0b0e1a;
+            border-radius: 10px;
+            margin: 10px 0;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .multiplier {
+            font-size: 52px;
+            margin: 20px 0;
+            color: #4cafef;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: none;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .start {
+            background: #4caf50;
+            color: #fff;
+        }
+
+        .cashout {
+            background: #ffb300;
+            color: #000;
+        }
+
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .log {
+            margin-top: 10px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .shop {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #2a2f5a;
+        }
+
+        .shop-item {
+            background: #22264a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .shop-item.buy-anim {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(76, 175, 239, 0.8);
+        }
+
+        .shop-item button {
+            width: auto;
+            padding: 6px 10px;
+            font-size: 14px;
+            background: #4cafef;
+            color: #000;
+        }
+
+        #rankDisplay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: black;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 6px 10px;
+            border-radius: 6px;
+            z-index: 1000;
+        }
+
+        /* 🔁 Reset overlay */
+        #resetOverlay {
+            position: fixed;
+            inset: 0;
+            background: black;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        #resetOverlay img {
+            max-width: 80%;
+            max-height: 80%;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="rankDisplay">Rank: Novice</div>
+
+    <div class="game">
+        <div class="history" id="history"></div>
+        <h1>💥 Crash</h1>
+
+        <div class="balance">🪙 <span id="coins">10.00</span> coins</div>
+
+        <!-- 🚀 added -->
+        <canvas id="crashChart" width="340" height="120"></canvas>
+
+        <div class="multiplier" id="multiplier">1.00x</div>
+
+        <input type="number" id="bet" value="1.00" min="0.10" step="0.10">
+        <button class="start" id="startBtn">START</button>
+        <button class="cashout disabled" id="cashoutBtn">CASH OUT</button>
+
+        <button id="resetBtn" style="display:none; background:#ff5252; color:#fff;">
+            Kill yourself and reincarnate
+        </button>
+
+        <div class="log" id="log"></div>
+
+        <div class="shop">
+            <h3>🛒 Shop</h3>
+            <div class="shop-item" id="bg1">
+                <span>🌌 Background Alpha</span>
+                <button onclick="buyBackground(0, this)">500 🪙</button>
+            </div>
+            <div class="shop-item" id="bg2">
+                <span>🌠 Background Beta</span>
+                <button onclick="buyBackground(1, this)">500 🪙</button>
+            </div>
+            <div class="shop-item" id="bg3">
+                <span>🌈 Background Gamma</span>
+                <button onclick="buyBackground(2, this)">500 🪙</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetOverlay">
+        <img src="https://static.toiimg.com/thumb/msid-125623950,width-1280,height-720,imgsize-19984,resizemode-6,overlay-toi_sw,pt-32,y_pad-500/photo.jpg" alt="Reset image">
+    </div>
+
+    <script>
+        /* ---------- ROCKET GRAPH ---------- */
+        const canvas = document.getElementById("crashChart");
+        const ctx = canvas.getContext("2d");
+        let chartData = [];
+        let exploded = false;
+
+        function drawChart(m) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = "#1e2244";
+            for (let i = 0; i <= 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, (canvas.height / 4) * i);
+                ctx.lineTo(canvas.width, (canvas.height / 4) * i);
+                ctx.stroke();
+            }
+
+            chartData.push(m);
+            if (chartData.length > 100) chartData.shift();
+
+            ctx.beginPath();
+            ctx.strokeStyle = "#4cafef";
+            ctx.lineWidth = 2;
+            chartData.forEach((v, i) => {
+                const x = (i / 100) * canvas.width;
+                const y = canvas.height - Math.log(v) * 35;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            const x = ((chartData.length - 1) / 100) * canvas.width;
+            const y = canvas.height - Math.log(m) * 35;
+            ctx.font = "18px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(exploded ? "💥" : "🚀", x, y);
+        }
+
+        /* ---------- ORIGINAL GAME ---------- */
+        const BACKGROUNDS = [
+            "https://media.newyorker.com/photos/5d7299a5af596b00089f162b/master/pass/Farrow-JeffreyEpstein-2.jpg",
+            "https://c.ndtvimg.com/2024-10/f5t7ddf_sean-diddy-combs-reuters_625x300_03_October_24.jpeg?downsize=545:307",
+            "https://variety.com/wp-content/uploads/2025/09/GettyImages-2216875659-e1757531590484.jpg?w=1000&h=667&crop=1"
+        ];
+
+        const RTP = 0.97;
+        let ownedBackgrounds = [];
+        let coins = 10;
+        let crashPoint = 0;
+        let currentMultiplier = 1;
+        let startTime = 0;
+        let interval = null;
+        let betAmount = 0;
+        let playing = false;
+
+        const coinsEl = document.getElementById("coins");
+        const multiplierEl = document.getElementById("multiplier");
+        const logEl = document.getElementById("log");
+        const startBtn = document.getElementById("startBtn");
+        const cashoutBtn = document.getElementById("cashoutBtn");
+        const historyEl = document.getElementById("history");
+        const rankDisplay = document.getElementById("rankDisplay");
+        const resetBtn = document.getElementById("resetBtn");
+
+        /* ✅ FIX: define bet */
+        const bet = document.getElementById("bet");
+
+        const cashOutSound = new Audio("https://www.soundjay.com/button/sounds/button-3.mp3");
+
+        function updateRank() {
+            let rankName = "";
+            if (coins < 100) rankName = "Part of the island";
+            else if (coins < 1000) rankName = "Cuck";
+            else if (coins < 10000) rankName = "Guest with access";
+            else if (coins < 100000) rankName = "Island Owner";
+            else rankName = "Epstein himself";
+            rankDisplay.textContent = "Rank: " + rankName;
+        }
+        updateRank();
+
+        let history = [];
+        function getMultiplierColor(m) {
+            if (m < 1.5) return "#ff5252";
+            if (m < 2.0) return "#ffffff";
+            if (m < 3.0) return "#4fc3f7";
+            if (m < 5.0) return "#b388ff";
+            if (m < 10.0) return "#ff77c8";
+            return "#4caf50";
+        }
+
+        function updateHistory(multiplier) {
+            history.unshift(multiplier);
+            history = history.slice(0, 25);
+            historyEl.innerHTML = "";
+            history.forEach(m => {
+                const span = document.createElement("span");
+                span.textContent = m.toFixed(2) + "x";
+                span.style.color = getMultiplierColor(m);
+                historyEl.appendChild(span);
+            });
+        }
+
+        function generateCrashMultiplier() {
+            const r = Math.random();
+            return Math.max(1, Math.floor((RTP / r) * 100) / 100);
+        }
+
+        function startGame() {
+            betAmount = Number(bet.value);
+            if (betAmount < 0.1 || betAmount > coins) return;
+
+            coins -= betAmount;
+            coinsEl.textContent = coins.toFixed(2);
+            updateRank();
+            checkForResetButton();
+
+            crashPoint = generateCrashMultiplier();
+            currentMultiplier = 1;
+            startTime = Date.now();
+            playing = true;
+
+            chartData = [];
+            exploded = false;
+            drawChart(1);
+
+            startBtn.classList.add("disabled");
+            cashoutBtn.classList.remove("disabled");
+            interval = setInterval(tick, 50);
+        }
+
+        function tick() {
+            const elapsed = (Date.now() - startTime) / 1000;
+            currentMultiplier = Math.floor(Math.exp(elapsed / 8) * 100) / 100;
+            multiplierEl.textContent = currentMultiplier.toFixed(2) + "x";
+            drawChart(currentMultiplier);
+            if (currentMultiplier >= crashPoint) endGame();
+        }
+
+        function cashOut() {
+            if (!playing) return;
+            coins += betAmount * currentMultiplier;
+            coinsEl.textContent = coins.toFixed(2);
+            updateRank();
+            cashOutSound.play();
+            endGame();
+        }
+
+        function endGame() {
+            clearInterval(interval);
+            playing = false;
+            exploded = true;
+            drawChart(crashPoint);
+            updateHistory(crashPoint);
+            startBtn.classList.remove("disabled");
+            cashoutBtn.classList.add("disabled");
+            multiplierEl.textContent = "1.00x";
+            checkForResetButton(); // ✅ FIX
+        }
+
+        function buyBackground(index, btn) {
+            const price = 1;
+            if (ownedBackgrounds.includes(index)) return;
+            if (coins < price) {
+                logEl.textContent = "❌ Not enough coins";
+                return;
+            }
+            coins -= price;
+            coinsEl.textContent = coins.toFixed(2);
+            updateRank();
+            ownedBackgrounds.push(index);
+            btn.parentElement.classList.add("buy-anim");
+            setTimeout(() => btn.parentElement.classList.remove("buy-anim"), 300);
+            applyBackgrounds();
+            logEl.textContent = "🌌 Background unlocked!";
+            checkForResetButton();
+        }
+
+        function applyBackgrounds() {
+            const urls = ownedBackgrounds.map(i => `url('${BACKGROUNDS[i]}')`);
+            const count = urls.length;
+            if (!count) return;
+
+            document.body.style.backgroundImage = urls.join(",");
+            document.body.style.backgroundRepeat = "no-repeat";
+
+            if (count === 1) {
+                document.body.style.backgroundSize = "cover";
+                document.body.style.backgroundPosition = "center center";
+            } else if (count === 2) {
+                document.body.style.backgroundSize = "50% 100%, 50% 100%";
+                document.body.style.backgroundPosition = "left center, right center";
+            } else {
+                document.body.style.backgroundSize = "33.33% 100%, 33.33% 100%, 33.33% 100%";
+                document.body.style.backgroundPosition =
+                    "left center, center center, right center";
+            }
+        }
+
+        function checkForResetButton() {
+            resetBtn.style.display = coins < 1 ? "block" : "none";
+        }
+
+        const resetOverlay = document.getElementById("resetOverlay");
+
+        resetBtn.onclick = () => {
+            resetOverlay.style.display = "flex";
+
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        };
+
+        startBtn.onclick = startGame;
+        cashoutBtn.onclick = cashOut;
+        checkForResetButton();
+    </script>
+
+</body>
+
+</html>

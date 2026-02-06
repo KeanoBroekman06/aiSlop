@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AI Slop - Main Menu</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            transition: background-image 0.6s ease, background-size 0.6s ease;
+            background-size: 100% 100%;       /* stretch to fill width and height */
+            background-position: center;      /* center the image */
+            background-repeat: no-repeat;     /* no tiling */
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 60px;
+            text-shadow: 0 0 10px #4cafef;
+        }
+
+        .menu-button {
+            width: 200px;
+            padding: 15px 0;
+            margin: 10px 0;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #4cafef;
+            color: #000;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .menu-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(76, 175, 239, 0.8);
+            background: #2196f3;
+        }
+
+        .menu-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 0 8px rgba(76, 175, 239, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>AI Slop</h1>
+
+    <button class="menu-button" onclick="location.href='crash.html'">Crash</button>
+    <button class="menu-button" onclick="location.href='table.html'">Blackjack</button>
+    <button class="menu-button" onclick="location.href='Roulette.html'">Roulette</button>
+    <button class="menu-button" onclick="location.href='minefield.html'">⚠️Minefield⚠️</button>
+
+    <script>
+        // Placeholder images
+        const backgrounds = [
+            "https://i.guim.co.uk/img/media/800aa5723961b8cc9264bdd5a19f816569c165fc/185_94_827_496/master/827.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=43e0ee446240bfc40c497da3d61ff99a",
+            "https://m.media-amazon.com/images/I/61NyTiYR+9L._AC_UF894,1000_QL80_.jpg",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgaquYm1N2lFcbPuen5GxT0jEb8b7x2QAe1w&s",
+            "https://i.pinimg.com/236x/b4/cc/34/b4cc3478149a2d66bc368b4353fb0530.jpg",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIStnl_DNIxWJVjsw1mtH8yzswHY22jmNNiA&s",
+            "https://images.teepublic.com/derived/production/designs/76656508_0/1750675503/i_p:c_191919,s_630,q_90.jpg",
+            "https://i.redd.it/g2utajys84df1.jpeg",
+            "https://files.shapes.inc/api/files/avatar_78f63ec0-a380-4135-a559-798e1cf17960.png",
+            "https://i.pinimg.com/736x/80/39/ce/8039ce6cc6040de86b42df8105a1a9a9.jpg",
+            "https://i.pinimg.com/736x/aa/e7/66/aae76644c45c495c4893b5b306c97976.jpg",
+            "https://i.pinimg.com/736x/60/44/53/604453aa5cefd4a332dbbe6fc3698af6.jpg",
+            "https://i.pinimg.com/736x/87/98/d7/8798d7eda5e4e0b82181af517402737a.jpg",
+            "https://i.pinimg.com/736x/46/a3/e4/46a3e4f7ee12e2aa4d2894486890d651.jpg",
+            "https://i.pinimg.com/1200x/30/aa/fd/30aafd566240a13662dc2621008cab48.jpg",
+            "https://i.pinimg.com/736x/84/16/69/841669451c64de15cd0f02881a8d09bc.jpg",
+            "https://i.pinimg.com/736x/e5/6a/31/e56a310464c9ebec7592757a595102e9.jpg",
+            "https://i.pinimg.com/1200x/d1/35/18/d1351878f4ab9fb644168c17b8355642.jpg",
+            "https://i.pinimg.com/1200x/96/d6/9f/96d69f3205a018b76d946f215fe36be2.jpg",
+            "https://i.pinimg.com/736x/fd/29/f1/fd29f1cc24490685a4ab9af287f0cc8d.jpg"
+        ];
+
+        let currentBg = 0;
+
+        function setBackground(index) {
+            document.body.style.backgroundImage = `url('${backgrounds[index]}')`;
+        }
+
+        // Initialize background
+        setBackground(currentBg);
+
+        // Change background automatically every 5 seconds
+        setInterval(() => {
+            currentBg = (currentBg + 1) % backgrounds.length;
+            setBackground(currentBg);
+        }, 1000);
+    </script>
+</body>
+
+</html>
